@@ -40,7 +40,8 @@ int main()
     cout<<"Server is listening..."<<endl;
 
 
-    int client = accept(server, NULL, NULL);
+    // NULL, NULL are used to get client's IP and port number if needed and client is the socket descriptor for the client
+    int client = accept(server, NULL, NULL); 
     if(client == -1)
     {
         cout<<"Error in accepting client"<<endl;

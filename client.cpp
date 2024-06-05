@@ -18,12 +18,12 @@ int main()
     }
     cout<<"Client socket created successfully"<<endl;
 
-    sockaddr_in client_address;
-    client_address.sin_family = AF_INET;
-    client_address.sin_port = htons(3000); // port number should be same as server's port number
-    client_address.sin_addr.s_addr = ntohl(INADDR_LOOPBACK); // localhost this needs to be changed to the server's IP address
-
-    int connect_status = connect(client, (sockaddr*)&client_address, sizeof(client_address));
+    sockaddr_in server_address;
+    server_address.sin_family = AF_INET;
+    server_address.sin_port = htons(3000); // port number should be same as server's port number
+    server_address.sin_addr.s_addr = ntohl(INADDR_LOOPBACK); // localhost this needs to be changed to the server's IP address
+server_address;
+    int connect_status = connect(client, (sockaddr*)&server_address, sizeof(server_address));
     if(connect_status == -1)
     {
         cout<<"Error in connecting to server"<<endl;
