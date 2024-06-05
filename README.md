@@ -9,3 +9,6 @@ Redis is a single threaded application which leverages IO Multiplexing to hangle
 Since Redis store data in memory(RAM) it can store data in in-memory data structures like linked list and hash tables to access data more effiently.
 
 There is one drawback the size of database cannot exceed the size of memory so mainly it is used for caching the data.
+
+Why to build Redis?
+    To understand TCP why, TCP provides a continuous stream of bytes. Unlike messages, a byte stream has no boundaries within it, which is a major difficulty in understanding TCP.
