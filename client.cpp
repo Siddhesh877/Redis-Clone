@@ -5,9 +5,96 @@
 #include<arpa/inet.h>
 #include<string.h>
 #include<iostream>
+#include<assert.h>
+#include<errno.h>
+#include<stdint.h>
+#include<stdlib.h>
+
 
 using namespace std;
 
+const size_t max_msg_size = 4096;
+
+static int32_t read_full(int fd,char *buff,size_t n)
+{
+    while(n>0)
+    {
+        ssize_t rv = read(fd,buff,n);
+        if(rv<=0)
+        {
+            return -1; // error or unexpected eof
+        }
+        assert(size_t(rv)<=n);
+        n -= (size_t)rv;
+        buff += rv;
+    }
+    return 0;
+}
+
+static int32_t write_full(int fd,const char *buff,size_t n)
+{
+    while(n>0)
+    {
+        ssize_t rv = write(fd,buff,n);
+        if(rv<=0)
+        {
+            return -1; // error or unexpected eof
+        }
+        assert(size_t(rv)<=n);
+        n -= (size_t)rv;
+        buff += rv;
+    }
+    return 0;
+}
+static int32_t query(int fd,const char *text)
+{
+    uint32_t len = (uint32_t)strlen(text);
+    if(len>max_msg_size)
+    {
+        return -1;
+    }
+
+    char wbuff[4+max_msg_size];
+    memcpy(wbuff,&len,4);
+    memcpy(&wbuff[4],text,len);
+    if(int32_t err = write_full(fd,wbuff,4+len)<0)
+    {
+        return err;
+    }
+
+    char rbuff[4+max_msg_size+1];
+    errno=0;
+    int32_t err = read_full(fd,rbuff,4);
+    if(err)
+    {
+        if(errno==0)
+        {
+            cout<<"unexpected eof"<<endl;
+        }
+        else
+        {
+            cout<<"error in read"<<endl;
+        }
+    }
+
+    memcpy(&len,rbuff,4);
+    if(len>max_msg_size)
+    {
+        cout<<"message too long"<<endl;
+        return -1;
+    }
+    err = read_full(fd,&rbuff[4],len);
+    if(err)
+    {
+        cout<<"error in read"<<endl;
+        return err;
+    }
+    rbuff[4+len] = '\0';
+    cout<<"received: "<<&rbuff[4]<<endl;
+    return 0;
+
+
+}
 int main()
 {
     int client = socket(AF_INET, SOCK_STREAM, 0);
@@ -31,13 +118,33 @@ server_address;
     }
     cout<<"Connected to server successfully"<<endl;
 
-    char buffer[] = "Hello from client";
-    int send_status = send(client, buffer, sizeof(buffer), 0);
-    if(send_status == -1)
+    // char buffer[] = "Hello from client";
+    // int send_status = send(client, buffer, sizeof(buffer), 0);
+    // if(send_status == -1)
+    // {
+    //     cout<<"Error in sending data"<<endl;
+    //     return -3;
+    // }
+    // cout<<"Data sent to server"<<endl;
+
+    // multiple messages
+    int32_t err = query(client,"Hello1");
+    if(err)
     {
-        cout<<"Error in sending data"<<endl;
-        return -3;
+        goto L_DONE;
     }
-    cout<<"Data sent to server"<<endl;
+    err = query(client,"Hello2");
+    if(err)
+    {
+        goto L_DONE;
+    }
+    err = query(client,"Hello3");
+    if(err)
+    {
+        goto L_DONE;
+    }
+
+    L_DONE:
+    close(client);
     return 0;
 }
