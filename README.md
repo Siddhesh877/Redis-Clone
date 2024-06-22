@@ -12,3 +12,16 @@ There is one drawback the size of database cannot exceed the size of memory so m
 
 Why to build Redis?
     To understand TCP why, TCP provides a continuous stream of bytes. Unlike messages, a byte stream has no boundaries within it, which is a major difficulty in understanding TCP.
+
+Protocol used:
+    A simple text-based protocol where first 4 characters in buffer will tell the length of message followed by message itself.
+
+
+References:
+https://build-your-own.org/redis
+
+https://youtu.be/WuwUk7Mk80E?si=ctP0YwXGlka45276
+
+https://copyconstruct.medium.com/nonblocking-i-o-99948ad7c957
+
+https://copyconstruct.medium.com/the-method-to-epolls-madness-d9d2d6378642
