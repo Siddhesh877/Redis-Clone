@@ -16,6 +16,12 @@ Why to build Redis?
 Protocol used:
     A simple text-based protocol where first 4 characters in buffer will tell the length of message followed by message itself.
 
+Data Structure used to store key-value pair
+    I have used map initially but for more efficiency I am using hash table.
+    Hash table is basiclly an array of fixed number of slots. A key is hashed and the slot index is typically just "hash(key)%size" OR "hash(key) & (size-1)"
+    To resolve the issue of collision there are 2 ways: 1.Open addressing: If a slot is occupied then find other slot for value.
+    2.Chaining: store collection of values which have colliding keys.
+
 
 References:
 https://build-your-own.org/redis
