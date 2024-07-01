@@ -22,6 +22,12 @@ Data Structure used to store key-value pair
     To resolve the issue of collision there are 2 ways: 1.Open addressing: If a slot is occupied then find other slot for value.
     2.Chaining: store collection of values which have colliding keys.
 
+    I am using chaining hash table.
+    load factor = (number of keys)/(number of slots)
+
+How to compile server and run?
+    g++ server.cpp hashtable.cpp -o server
+    ./server
 
 References:
 https://build-your-own.org/redis
