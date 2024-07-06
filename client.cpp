@@ -17,6 +17,105 @@ using namespace std;
 
 const size_t max_msg_size = 4096;
 
+enum
+{
+    SER_NIL = 0,
+    SER_ERR = 1,
+    SER_STR = 2,
+    SER_INT = 3,
+    SER_ARR = 4,
+};
+
+static int32_t on_response(const uint8_t *data,size_t size)
+{
+    if(size<1)
+    {
+        cout<<"bad response"<<endl;
+        return -1;
+    }
+    switch(data[0])
+    {
+        case SER_NIL:
+            cout<<"(nil)\n";
+            return 1;
+        case SER_ERR:
+            if(size < 1+8)
+            {
+                cout<<"bad response"<<endl;
+                return -1;
+            }
+            {
+                uint32_t code = 0;
+                uint32_t len = 0;
+                memcpy(&code,&data[1],4);
+                memcpy(&len,&data[1+4],4);
+                if(size<1+8+len)
+                {
+                    cout<<"bad response"<<endl;
+                    return -1;
+                }
+                cout<<"(err) "<<code<<" "<<len<<" "<<&data[1+8];
+                return 1+8+len;
+            }
+        case SER_STR:
+            if(size<1+4)
+            {
+                cout<<"bad response"<<endl;
+                return -1;
+            }
+            {
+                uint32_t len=0;
+                memcpy(&len,&data[1],4);
+                if(size<1+4+len)
+                {
+                    cout<<"bad response"<<endl;
+                    return -1;
+                }
+                cout<<"(str) "<<len<<" "<<&data[1+4]<<endl;
+                return 1+4+len;
+            }
+        case SER_INT:
+            if(size < 1+8)
+            {
+                cout<<"bad response"<<endl;
+                return -1;
+            }
+            {
+                int64_t val=0;
+                memcpy(&val,&data[1],8);
+                cout<<"(int) "<<val<<endl;
+                return 1+8;
+            }
+        case SER_ARR:
+            if(size < 1+4)
+            {
+                cout<<"bad response"<<endl;
+                return -1;
+            }
+            {
+                uint32_t len=0;
+                memcpy(&len,&data[1],4);
+                cout<<"(arr) len="<<len<<endl;
+                size_t arr_bytes = 1+4;
+                for(uint32_t i=0;i<len;i++)
+                {
+                    int32_t rv=on_response(&data[arr_bytes],size-arr_bytes);
+                    if(rv<0)
+                    {
+                        return rv;
+                    }
+                    arr_bytes+=(size_t) rv;
+                }
+                cout<<"(arr) end"<<endl;
+                return (int32_t) arr_bytes;
+            }
+        default:
+            cout<<"bad response"<<endl;
+            return -1;
+    }
+}
+
+
 static int32_t read_full(int fd,char *buff,size_t n)
 {
     while(n>0)
@@ -152,15 +251,24 @@ static int32_t read_res(int fd)
     // return 0;
 
     //print results
-    uint32_t rescode = 0;
-    if(len<4)
+    // uint32_t rescode = 0;
+    // if(len<4)
+    // {
+    //     cout<<"bad response"<<endl;
+    //     return -1;
+    // }
+    // memcpy(&rescode,&rbuff[4],4);
+    // cout<<"server says:["<<rescode<<"]"<<&rbuff[8]<<endl;
+    // return 0;
+
+    //print results
+    int32_t rv = on_response((uint8_t *)&rbuff[4],len);
+    if(rv > 0 && (uint32_t)rv !=len)
     {
         cout<<"bad response"<<endl;
-        return -1;
+        rv=-1;
     }
-    memcpy(&rescode,&rbuff[4],4);
-    cout<<"server says:["<<rescode<<"]"<<&rbuff[8]<<endl;
-    return 0;
+    return rv;
 
 }
 static int32_t send_req(int fd, const vector<string> &cmd)
@@ -188,6 +296,7 @@ static int32_t send_req(int fd, const vector<string> &cmd)
     }
     return write_full(fd,wbuf,4+len);
 }
+
 
 int main(int argc, char **argv)
 {
@@ -262,7 +371,7 @@ int main(int argc, char **argv)
         cmd.push_back(argv[i]);
     }
 
-    int32_t err  = send_req(client,cmd);
+    int32_t err=send_req(client,cmd);
     if(err)
     {
         goto L_DONE;

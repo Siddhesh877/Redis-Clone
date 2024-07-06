@@ -29,6 +29,16 @@ How to compile server and run?
     g++ server.cpp hashtable.cpp -o server
     ./server
 
+Serilization
+    Searlization is the process of converting an object or data structure into format that can easily stored or transmitted and then reconstructed later.This is crucial for data exchange especially between different platforms or different languages.
+    The serilization scheme that i am using can be summarized as 'Type Length Value'(TLV):
+        Type: the type of value.
+        Length: length of data for strings or arrays.
+        Value: at last value is encoded.
+    Advantage of TLV:1. can be decoded without a schema like JSON of XML.
+    2. It can encode arbitrarily nested data.
+
+
 References:
 https://build-your-own.org/redis
 
