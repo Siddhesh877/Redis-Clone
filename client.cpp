@@ -11,6 +11,7 @@
 #include<stdlib.h>
 #include<vector>
 #include<string>
+#include<sstream>
 
 
 using namespace std;
@@ -265,7 +266,8 @@ static int32_t read_res(int fd)
     int32_t rv = on_response((uint8_t *)&rbuff[4],len);
     if(rv > 0 && (uint32_t)rv !=len)
     {
-        cout<<"bad response"<<endl;
+        // cout<<"bad response"<<endl;
+        cout<<"end of data"<<endl;
         rv=-1;
     }
     return rv;
@@ -364,26 +366,60 @@ int main(int argc, char **argv)
     //         goto L_DONE;
     //     }
     // }
+    //-----------------------------------------------------
+    // vector<string> cmd;
+    // for(int i=1;i<argc;i++)
+    // {
+    //     cmd.push_back(argv[i]);
+    // }
 
-    vector<string> cmd;
-    for(int i=1;i<argc;i++)
-    {
-        cmd.push_back(argv[i]);
+    // int32_t err=send_req(client,cmd);
+    // if(err)
+    // {
+    //     goto L_DONE;
+    // }
+    // err=read_res(client);
+    // if(err)
+    // {
+    //     goto L_DONE;
+    // }
+
+
+    // L_DONE:
+    // close(client);
+    // return 0;
+    //----------------------------------------------------------
+    while (true) {
+        cout << "redis> ";
+        string input;
+        getline(cin, input);
+
+        if (input == "exit" || input == "quit") {
+            break;
+        }
+
+        vector<string> cmd;
+        std::istringstream iss(input);
+        string token;
+        while (iss >> token) {
+            cmd.push_back(token);
+        }
+
+        // Assume send_req and read_res are defined elsewhere
+        if (!cmd.empty()) {
+            int32_t err = send_req(client, cmd);
+            if (err) {
+                // cerr << "Error sending request" << endl;
+                continue;
+            }
+            err = read_res(client);
+            if (err) {
+                // cerr << "Error reading response" << endl;
+                continue;
+            }
+        }
     }
 
-    int32_t err=send_req(client,cmd);
-    if(err)
-    {
-        goto L_DONE;
-    }
-    err=read_res(client);
-    if(err)
-    {
-        goto L_DONE;
-    }
-
-
-    L_DONE:
     close(client);
     return 0;
 }

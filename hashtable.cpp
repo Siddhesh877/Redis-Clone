@@ -2,6 +2,11 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "hashtable.h"
+#include <iostream>
+
+#define container_of(ptr, type, member) ({                  \
+    const typeof( ((type *)0)->member ) *__mptr = (ptr);    \
+    (type *)( (char *)__mptr - offsetof(type, member) );})
 
 //n must be power of 2
 static void h_init(HTab *htab, size_t n) {
@@ -66,7 +71,8 @@ static void hm_help_resizing(HMap *hmap)
             hmap->resizing_pos++;
             continue;
         }
-        h_insert(&hmap->ht1,h_detach(&hmap->ht2,from));
+        std::cout << "Moving key: " <<std::endl;
+        h_insert(&hmap->ht1,h_detach(&hmap->ht2, from));
         nwork++;
     }
     if(hmap->ht2.size == 0 && hmap->ht2.tab)

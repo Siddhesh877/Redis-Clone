@@ -37,7 +37,8 @@ Serilization
         Value: at last value is encoded.
     Advantage of TLV:1. can be decoded without a schema like JSON of XML.
     2. It can encode arbitrarily nested data.
-
+The value part of key-value store is more than just strings. It can be list,hashset, sorted set,etc.
+I am trying to implement sorted set. Which can be implemented using AVL tree which are efficient with worstcase of O(log(n)) and I have already implemented it in my data structure class.  
 
 References:
 https://build-your-own.org/redis

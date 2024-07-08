@@ -237,7 +237,9 @@ static void do_keys(std::vector<std::string> &cmd,std::string &out)
 {
     (void)cmd;
     out_arr(out,(uint32_t)hm_size(&g_data.db));
+    // std::cout<<"keys in ht1"<<std::endl;
     h_scan(&g_data.db.ht1,&cb_scan,&out);
+    // std::cout<<"keys in ht2"<<std::endl;
     h_scan(&g_data.db.ht2,&cb_scan,&out);
 }
 
