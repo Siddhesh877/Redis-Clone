@@ -30,7 +30,7 @@ jobs:
         with:
           context: .
           push: true
-          tags: your-dockerhub-username/remote-dict-server:latest
+          tags: siddhesh877/remote-dict-server:latest
 
       - name: Deploy Docker container
-        run: docker run --rm -d -p 3000:3000 your-dockerhub-username/remote-dict-server:latest
+        run: docker run --rm -d -p 3000:3000 siddhesh877/remote-dict-server:latest
