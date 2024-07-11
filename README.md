@@ -16,6 +16,29 @@ Why to build Redis?
 Protocol used:
     A simple text-based protocol where first 4 characters in buffer will tell the length of message followed by message itself.
 
+Data Structure used to store key-value pair
+    I have used map initially but for more efficiency I am using hash table.
+    Hash table is basiclly an array of fixed number of slots. A key is hashed and the slot index is typically just "hash(key)%size" OR "hash(key) & (size-1)"
+    To resolve the issue of collision there are 2 ways: 1.Open addressing: If a slot is occupied then find other slot for value.
+    2.Chaining: store collection of values which have colliding keys.
+
+    I am using chaining hash table.
+    load factor = (number of keys)/(number of slots)
+
+How to compile server and run?
+    g++ server.cpp hashtable.cpp -o server
+    ./server
+
+Serilization
+    Searlization is the process of converting an object or data structure into format that can easily stored or transmitted and then reconstructed later.This is crucial for data exchange especially between different platforms or different languages.
+    The serilization scheme that i am using can be summarized as 'Type Length Value'(TLV):
+        Type: the type of value.
+        Length: length of data for strings or arrays.
+        Value: at last value is encoded.
+    Advantage of TLV:1. can be decoded without a schema like JSON of XML.
+    2. It can encode arbitrarily nested data.
+The value part of key-value store is more than just strings. It can be list,hashset, sorted set,etc.
+I am trying to implement sorted set. Which can be implemented using AVL tree which are efficient with worstcase of O(log(n)) and I have already implemented it in my data structure class.  
 
 References:
 https://build-your-own.org/redis
