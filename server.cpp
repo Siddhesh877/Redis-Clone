@@ -589,6 +589,9 @@ int main() {
     if (rv) {
         die("listen()");
     }
+    else{
+        std::cout<<"listening on port 3000"<<std::endl;
+    }
 
     // set the listen fd to nonblocking mode
     fd_set_nb(fd);
