@@ -25,6 +25,7 @@ enum
     SER_STR = 2,
     SER_INT = 3,
     SER_ARR = 4,
+    SER_TIMEOUT = 5,
 };
 
 static int32_t on_response(const uint8_t *data,size_t size)
@@ -110,6 +111,9 @@ static int32_t on_response(const uint8_t *data,size_t size)
                 cout<<"(arr) end"<<endl;
                 return (int32_t) arr_bytes;
             }
+        case SER_TIMEOUT:
+            cout<<"(connection timeout, restart client)\n";
+            return -2;
         default:
             cout<<"bad response"<<endl;
             return -1;
@@ -408,14 +412,20 @@ int main(int argc, char **argv)
         // Assume send_req and read_res are defined elsewhere
         if (!cmd.empty()) {
             int32_t err = send_req(client, cmd);
-            if (err) {
-                // cerr << "Error sending request" << endl;
+            if (err == -1) {
+                cerr << "Error sending request" << endl;
                 continue;
             }
             err = read_res(client);
-            if (err) {
+            if (err == -1) {
                 // cerr << "Error reading response" << endl;
+                cout<<"Error reading response"<<err<<endl;
                 continue;
+            }
+            if(err == -2)
+            {
+                // cout<<"timeout"<<endl;
+                break;
             }
         }
     }

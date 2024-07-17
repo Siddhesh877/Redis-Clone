@@ -15,6 +15,9 @@
 #include <string>
 #include <map>
 #include "hashtable.h"
+#include "timeout_heap.h"
+
+const int TIMEOUT_SECONDS = 60;
 
 #define container_of(ptr, type, member) ({                  \
     const typeof( ((type *)0)->member ) *__mptr = (ptr);    \
@@ -59,6 +62,22 @@ static void fd_set_nb(int fd) {
 
 const size_t k_max_msg = 4096;
 
+static int32_t write_full(int fd,const char *buff,size_t n)
+{
+    while(n>0)
+    {
+        ssize_t rv = write(fd,buff,n);
+        if(rv<=0)
+        {
+            return -1; // error or unexpected eof
+        }
+        assert(size_t(rv)<=n);
+        n -= (size_t)rv;
+        buff += rv;
+    }
+    return 0;
+}
+
 enum 
 {
     STATE_REQ = 0,
@@ -100,7 +119,10 @@ enum
     SER_STR = 2,
     SER_INT = 3,
     SER_ARR = 4,
+    SER_TIMEOUT = 5,
 };
+
+
 
 static void out_nil(std::string &out)
 {
@@ -134,6 +156,17 @@ static void out_arr(std::string &out,uint32_t n)
 {
     out.push_back(SER_ARR);
     out.append((char *)&n,4);
+}
+
+static void out_timeout(int fd)
+{
+    std::string out;
+    out.push_back(SER_TIMEOUT);
+    char wbuf[4 + k_max_msg];
+    uint32_t len = strlen(out.data());
+    memcpy(wbuf, &len, 4);
+    memcpy(wbuf + 4, out.data(), len);
+    write_full(fd, wbuf, 4 + len);
 }
 
 static bool entry_eq(HNode *lhs,HNode *rhs)
@@ -258,6 +291,7 @@ struct Conn {
 struct ServerContext {
     int epoll_fd;
     std::vector<Conn *> fd2conn;
+    TimeoutHeap timeout_heap;
 };
 
 static void conn_put(ServerContext &ctx, struct Conn *conn) {
@@ -285,6 +319,10 @@ static int32_t accept_new_conn(ServerContext &ctx, int fd) {
         close(connfd);
         return -1;
     }
+
+    time_t expiry = time(NULL) + TIMEOUT_SECONDS;
+    ctx.timeout_heap.insert(connfd,expiry);
+
     conn->fd = connfd;
     conn->state = STATE_REQ;
     conn->rbuf_size = 0;
@@ -552,7 +590,7 @@ static void state_res(Conn *conn) {
     while (try_flush_buffer(conn)) {}
 }
 
-static void connection_io(Conn *conn) {
+static void connection_io(ServerContext &ctx,Conn *conn) {
     if (conn->state == STATE_REQ) {
         state_req(conn);
     } else if (conn->state == STATE_RES) {
@@ -560,6 +598,9 @@ static void connection_io(Conn *conn) {
     } else {
         assert(0);  // not expected
     }
+    time_t new_expiry = time(NULL) + TIMEOUT_SECONDS;
+    ctx.timeout_heap.update(conn->fd, new_expiry);
+
 }
 
 
@@ -613,10 +654,33 @@ int main() {
     // the event loop
     std::vector<struct epoll_event> events(16);
     while (true) {
-        int nfds = epoll_wait(ctx.epoll_fd, events.data(), events.size(), -1);
+        time_t now = time(NULL);
+        time_t next_timeout = ctx.timeout_heap.nextExpiry();
+        int timeout  = next_timeout ? (next_timeout - now) * 1000 : -1;
+
+        int nfds = epoll_wait(ctx.epoll_fd, events.data(), events.size(), timeout);
         if (nfds == -1) {
             if (errno == EINTR) continue;
             die("epoll_wait");
+        }
+
+        now = time(NULL);
+        while(!ctx.timeout_heap.empty() && ctx.timeout_heap.nextExpiry()<=now)
+        {
+            HeapItem item;
+            ctx.timeout_heap.extractMin(item);
+            Conn *conn = ctx.fd2conn[item.fd];
+            if(conn)
+            {
+                // std::string out;
+                out_timeout(conn->fd);
+                
+                printf("connection timeout for fd %d\n",conn->fd);
+                epoll_ctl(ctx.epoll_fd,EPOLL_CTL_DEL,conn->fd,NULL);
+                ctx.fd2conn[conn->fd] = NULL;
+                close(conn->fd);
+                free(conn);
+            }
         }
 
         for (int i = 0; i < nfds; ++i) {
@@ -626,7 +690,7 @@ int main() {
             } else {
                 // existing connection
                 Conn *conn = ctx.fd2conn[events[i].data.fd];
-                connection_io(conn);
+                connection_io(ctx,conn);
                 if (conn->state == STATE_END) {
                     // client closed normally, or something bad happened.
                     // destroy this connection
