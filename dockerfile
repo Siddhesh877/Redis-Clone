@@ -20,7 +20,7 @@ WORKDIR /app
 COPY . .
 
 # Compile the application
-RUN g++ -o server server.cpp hashtable.cpp
+RUN g++ -o server server.cpp hashtable.cpp timeout_heap.cpp
 
 EXPOSE 3000
 
